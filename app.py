@@ -14,6 +14,27 @@ with open(GEOJSON_PATH, encoding="utf-8") as f:
 WOJ_FIELD = "name"
 locations = [f["properties"][WOJ_FIELD] for f in geojson["features"]]
 
+# Bazowe wartości
+z_values = [1] * len(locations)
+
+import pandas as pd
+
+df = pd.DataFrame({
+    "wojewodztwo": locations,
+    "val": z_values
+})
+fig = px.choropleth_map(
+    df,
+    geojson=geojson,
+    locations="wojewodztwo",
+    featureidkey=f"properties.{WOJ_FIELD}",
+    color="val",
+    color_continuous_scale=[[0, "#a8e6a3"], [1, "#a8e6a3"]],
+    hover_name="wojewodztwo",
+    center={"lat": 52.1, "lon": 19.4},
+    zoom=5
+)
+
 # =====================
 # Mapowanie województw na strony
 # =====================
