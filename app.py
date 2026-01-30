@@ -2,12 +2,12 @@ import json
 import dash
 from dash import dcc, html, Input, Output
 import plotly.express as px
+import pandas as pd
 
 # =====================
 # GeoJSON
 # =====================
 GEOJSON_PATH = "polska-wojewodztwa.geojson"
-
 with open(GEOJSON_PATH, encoding="utf-8") as f:
     geojson = json.load(f)
 
@@ -17,23 +17,11 @@ locations = [f["properties"][WOJ_FIELD] for f in geojson["features"]]
 # Bazowe wartości
 z_values = [1] * len(locations)
 
-import pandas as pd
-
+# DataFrame do mapy
 df = pd.DataFrame({
     "wojewodztwo": locations,
     "val": z_values
 })
-fig = px.choropleth_map(
-    df,
-    geojson=geojson,
-    locations="wojewodztwo",
-    featureidkey=f"properties.{WOJ_FIELD}",
-    color="val",
-    color_continuous_scale=[[0, "#a8e6a3"], [1, "#a8e6a3"]],
-    hover_name="wojewodztwo",
-    center={"lat": 52.1, "lon": 19.4},
-    zoom=5
-)
 
 # =====================
 # Mapowanie województw na strony
@@ -58,21 +46,16 @@ LINKI = {
 }
 
 # =====================
-# Dane do mapy
-# =====================
-z_values = [1] * len(locations)
-
-# =====================
-# Mapa
+# Tworzymy figurę mapy
 # =====================
 fig = px.choropleth_map(
+    df,
     geojson=geojson,
-    locations=locations,
+    locations="wojewodztwo",
     featureidkey=f"properties.{WOJ_FIELD}",
-    color=z_values,
+    color="val",
     color_continuous_scale=[[0, "#a8e6a3"], [1, "#a8e6a3"]],
-    hover_name=locations,
-    hover_data={},
+    hover_name="wojewodztwo",
     center={"lat": 52.1, "lon": 19.4},
     zoom=5
 )
@@ -87,7 +70,7 @@ fig.update_layout(
     mapbox_style="open-street-map",
     dragmode=False,
     margin=dict(l=0, r=0, t=0, b=0),
-    coloraxis_showscale=False  # ❗ usuwa zielony słupek
+    coloraxis_showscale=False
 )
 
 # =====================
@@ -106,21 +89,13 @@ app.layout = html.Div(
         "padding": "40px"
     },
     children=[
-        html.H1(
-            "Witaj w turystycznej Polsce!",
-            style={"color": "#006400"}
-        ),
+        html.H1("Witaj w turystycznej Polsce!", style={"color": "#006400"}),
         html.P(
             "Na tej stronie możesz w szybki sposób sprawdzić, jakie atrakcje turystyczne "
             "czekają na Ciebie w poszczególnych regionach naszego Kraju. Kliknij województwo, aby zobaczyć atrakcje turystyczne ❤️",
             style={"maxWidth": "900px", "textAlign": "center"}
         ),
-        dcc.Graph(
-            id="mapa",
-            figure=fig,
-            style={"width": "80vw", "height": "70vh"},
-            config={"displayModeBar": False}
-        ),
+        dcc.Graph(id="mapa", figure=fig, style={"width": "80vw", "height": "70vh"}, config={"displayModeBar": False}),
         dcc.Location(id="url")  # do przekierowań
     ]
 )
@@ -129,22 +104,19 @@ app.layout = html.Div(
 # Callback – przekierowanie
 # =====================
 @app.callback(
-    Output("url", "href"),
+    Output("url", "href"),  # w Dash można też użyć pathname
     Input("mapa", "clickData"),
     prevent_initial_call=True
 )
 def open_link(clickData):
-    woj = clickData["points"][0]["location"]
-    return LINKI.get(woj)
+    if clickData:
+        woj = clickData["points"][0]["location"]
+        return LINKI.get(woj, "/")  # jeśli brak linku, wraca do "/"
+    return "/"
 
 # =====================
-# Run lokalnie
+# Run lokalnie lub na Render
 # =====================
 if __name__ == "__main__":
     app.run(debug=True)
-app = dash.Dash(__name__)
-server = app.server
-
-
-
 
